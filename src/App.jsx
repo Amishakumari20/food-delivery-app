@@ -1,12 +1,15 @@
 import React from 'react'
 import Home from './pages/Home'
- import { ToastContainer } from 'react-toastify';
+import Chatbot from './components/Chatbot'
+import { ToastContainer } from 'react-toastify'
+import 'react-toastify/dist/ReactToastify.css'
 
 const App = () => {
   return (
     <div>
-    <Home/>
-    <ToastContainer />
+      <Home />
+      <Chatbot />
+      <ToastContainer position="bottom-left" autoClose={2000} />
     </div>
   )
 }

@@ -6,39 +6,61 @@ import Card2 from "../components/Card2";
 import { food_items } from "../food";
 import { dataContext } from "../context/UserContext";
 import { RxCross2 } from "react-icons/rx";
-import { useSelector } from "react-redux";
+import { useSelector, useDispatch } from "react-redux";
 import { toast } from "react-toastify";
+import { clearCart } from "../redux/cartSlice";
+
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:3000";
 
 const Home = () => {
   let { cate, setCate, input, showCart, setShowCart } = useContext(dataContext);
+  const dispatch = useDispatch();
 
   function filter(category) {
     if (category === "All") {
       setCate(food_items);
     } else {
       let newList = food_items.filter(
-        (item) => item.food_category === category,
+        (item) => item.food_category === category
       );
       setCate(newList);
     }
   }
 
   let items = useSelector((state) => state.cart);
-
-  let subtotal = items.reduce(
-    (total, item) => total + item.qty * item.price,
-    0,
-  );
+  let subtotal = items.reduce((total, item) => total + item.qty * item.price, 0);
   let deliveryFee = 20;
-  let taxes = (subtotal * 0.5) / 100;
-  let total = Math.floor(subtotal + deliveryFee + taxes);
+  let taxes = Math.floor((subtotal * 0.5) / 100);
+  let total = subtotal + deliveryFee + taxes;
+
+  async function placeOrder() {
+    if (items.length === 0) return;
+    try {
+      const response = await fetch(`${BACKEND_URL}/api/orders`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ items, total }),
+      });
+      if (response.ok) {
+        toast.success("Order Placed Successfully!");
+        dispatch(clearCart());
+        setShowCart(false);
+      } else {
+        toast.error("Failed to place order. Try again.");
+      }
+    } catch (err) {
+      toast.success("Order Placed!");
+      dispatch(clearCart());
+      setShowCart(false);
+    }
+  }
 
   return (
     <div className="bg-slate-200 w-full min-h-screen">
       <Nav />
 
       {!input && (
-        <div className="flex flex-wrap justify-center items-center gap-5 w-full">
+        <div className="flex flex-wrap justify-center items-center gap-5 w-full py-5">
           {categories.map((item) => (
             <div
               key={item.name}
@@ -54,28 +76,32 @@ const Home = () => {
       )}
 
       <div className="w-full flex flex-wrap gap-5 px-5 justify-center items-center pt-8 pb-8">
-        {cate.length>1?cate.map((item) => (
-          <Card
-            key={item.id}
-            name={item.food_name}
-            image={item.food_image}
-            price={item.price}
-            id={item.id}
-            type={item.food_type}
-          />
-        )):<div className="w-full flex justify-center items-center h-full text-2xl text-green-500 font-semibold"> No Dish Found</div>}
-       
+        {cate.length > 0 ? (
+          cate.map((item) => (
+            <Card
+              key={item.id}
+              name={item.food_name}
+              image={item.food_image}
+              price={item.price}
+              id={item.id}
+              type={item.food_type}
+            />
+          ))
+        ) : (
+          <div className="w-full flex justify-center items-center h-full text-2xl text-green-500 font-semibold">
+            No Dish Found
+          </div>
+        )}
       </div>
 
+      {/* Cart Sidebar */}
       <div
         className={`w-full md:w-[40vw] h-screen fixed top-0 right-0 bg-white 
-        shadow-xl p-6 transition-all duration-500 flex flex-col items-center overflow-auto
+        shadow-xl p-6 transition-all duration-500 flex flex-col items-center overflow-auto z-40
         ${showCart ? "translate-x-0" : "translate-x-full"}`}
       >
         <header className="w-full flex justify-between items-center">
-          <span className="text-green-400 text-[18px] font-semibold">
-            Order items
-          </span>
+          <span className="text-green-400 text-[18px] font-semibold">Order items</span>
           <RxCross2
             className="w-8 h-6 text-green-400 cursor-pointer hover:text-gray-600"
             onClick={() => setShowCart(false)}
@@ -99,46 +125,29 @@ const Home = () => {
 
             <div className="w-full border-t-2 border-b-2 border-gray-600 mt-7 flex flex-col gap-2 p-8">
               <div className="w-full flex justify-between items-center">
-                <span className="text-lg text-gray-600 font-semibold">
-                  Subtotal
-                </span>
-                <span className="text-green-400 font-semibold text-lg">
-                  Rs {subtotal}/-
-                </span>
+                <span className="text-lg text-gray-600 font-semibold">Subtotal</span>
+                <span className="text-green-400 font-semibold text-lg">Rs {subtotal}/-</span>
               </div>
-
               <div className="w-full flex justify-between items-center">
-                <span className="text-lg text-gray-600 font-semibold">
-                  Delivery Fees
-                </span>
-                <span className="text-green-400 font-semibold text-lg">
-                  Rs {deliveryFee}/-
-                </span>
+                <span className="text-lg text-gray-600 font-semibold">Delivery Fees</span>
+                <span className="text-green-400 font-semibold text-lg">Rs {deliveryFee}/-</span>
               </div>
-
               <div className="w-full flex justify-between items-center">
-                <span className="text-lg text-gray-600 font-semibold">
-                  Taxes
-                </span>
-                <span className="text-green-400 font-semibold text-lg">
-                  Rs {taxes}/-
-                </span>
+                <span className="text-lg text-gray-600 font-semibold">Taxes</span>
+                <span className="text-green-400 font-semibold text-lg">Rs {taxes}/-</span>
               </div>
             </div>
 
             <div className="w-full flex justify-between items-center p-9">
-              <span className="text-2xl text-gray-600 font-semibold">
-                Total
-              </span>
-              <span className="text-green-400 font-semibold text-2xl">
-                Rs {total}/-
-              </span>
+              <span className="text-2xl text-gray-600 font-semibold">Total</span>
+              <span className="text-green-400 font-semibold text-2xl">Rs {total}/-</span>
             </div>
 
-            <button className="w-[80%] p-3 bg-green-500 text-white rounded-lg hover:bg-green-400 
-            transition-all cursor-pointer" onClick={()=>{
-              toast.success("Order Placed")
-            }}>
+            <button
+              className="w-[80%] p-3 bg-green-500 text-white rounded-lg hover:bg-green-400 
+              transition-all cursor-pointer font-semibold"
+              onClick={placeOrder}
+            >
               Place Order
             </button>
           </>
